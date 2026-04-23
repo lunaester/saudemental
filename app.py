@@ -27,9 +27,6 @@ def calcular_nivel(media):
     else:
         return "intenso"
 
-
-# ── rota principal do formulário ───────────────────────────────────────────────
-
 @app.route("/", methods=["GET", "POST"])
 def home():
     resultado = ""
