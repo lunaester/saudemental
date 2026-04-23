@@ -5,7 +5,7 @@ import os
 
 load_dotenv()
 app = Flask(__name__)
-app.secret_key = "sua_chave_secreta_aqui"  # troque por algo seguro
+app.secret_key = os.getenv("SECRET_KEY", "sua_chave_secreta_aqui")
 
 
 # ── helpers ──────────────────────────────────────────────────────────────────
@@ -14,8 +14,9 @@ def get_conexao():
     return mysql.connector.connect(
         host=os.getenv("DB_HOST", "localhost"),
         user=os.getenv("DB_USER", "root"),
-        password=os.getenv("DB_PASSWORD", "ester2209"),
-        database=os.getenv("DB_NAME", "saude_mental")
+        password=os.getenv("DB_PASSWORD", ""),
+        database=os.getenv("DB_NAME", "saude_mental"),
+        port=int(os.getenv("DB_PORT", 3306))
     )
 
 def calcular_nivel(media):
@@ -27,7 +28,7 @@ def calcular_nivel(media):
         return "intenso"
 
 
-# ── rota principal do formulário (seu app original) ───────────────────────────
+# ── rota principal do formulário ───────────────────────────────────────────────
 
 @app.route("/", methods=["GET", "POST"])
 def home():
@@ -63,7 +64,7 @@ def home():
                     conexao = get_conexao()
                     cursor  = conexao.cursor()
                     try:
-                        sql    = "INSERT INTO usuarios (nome, idade, sexo, ansiedade, estresse, depressao, nivel) VALUES (%s,%s,%s,%s,%s,%s,%s)"
+                        sql = "INSERT INTO usuarios (nome, idade, sexo, ansiedade, estresse, depressao, nivel) VALUES (%s,%s,%s,%s,%s,%s,%s)"
                         cursor.execute(sql, (nome, idade, sexo, ansiedade, estresse, depressao, nivel))
                         conexao.commit()
                     finally:
@@ -82,7 +83,6 @@ def home():
 
 @app.route("/admin")
 def admin():
-    """Lista todos os registros no painel."""
     conexao = get_conexao()
     cursor  = conexao.cursor()
     try:
@@ -97,7 +97,6 @@ def admin():
 
 @app.route("/admin/editar", methods=["POST"])
 def admin_editar():
-    """Edita nome, idade, sexo, ansiedade, estresse e depressão de um registro."""
     try:
         id_usuario = int(request.form["id"])
         nome       = request.form["nome"].strip()
@@ -140,7 +139,6 @@ def admin_editar():
 
 @app.route("/admin/apagar", methods=["POST"])
 def admin_apagar():
-    """Apaga um registro pelo ID."""
     try:
         id_usuario = int(request.form["id"])
 
@@ -163,7 +161,6 @@ def admin_apagar():
 
 @app.route("/admin/reorganizar-ids", methods=["POST"])
 def admin_reorganizar_ids():
-    """Reorganiza os IDs em sequência sem lacunas."""
     conexao = get_conexao()
     cursor  = conexao.cursor()
     try:
@@ -183,4 +180,4 @@ def admin_reorganizar_ids():
 # ─────────────────────────────────────────────────────────────────────────────
 
 if __name__ == "__main__":
-    app.run(debug=True)
+    app.run(debug=False)
