@@ -1,0 +1,628 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Painel Admin — Saúde Mental</title>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Syne:wght@700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet"/>
+  <style>
+    :root {
+      --bg: #0d0d0f;
+      --surface: #141416;
+      --card: #1a1a1e;
+      --border: #2a2a30;
+      --accent: #00e5a0;
+      --accent2: #ff4d6d;
+      --accent3: #ffd166;
+      --text: #e8e8f0;
+      --muted: #6b6b7e;
+      --leve: #00e5a0;
+      --moderado: #ffd166;
+      --intenso: #ff4d6d;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'DM Sans', sans-serif;
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    /* grain overlay */
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E");
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    header {
+      position: relative;
+      z-index: 1;
+      padding: 2rem 3rem;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background: linear-gradient(90deg, rgba(0,229,160,0.04) 0%, transparent 60%);
+    }
+
+    .logo {
+      font-family: 'Syne', sans-serif;
+      font-size: 1.4rem;
+      font-weight: 800;
+      letter-spacing: -0.02em;
+    }
+    .logo span { color: var(--accent); }
+
+    .badge-total {
+      font-family: 'DM Mono', monospace;
+      font-size: 0.8rem;
+      background: rgba(0,229,160,0.1);
+      color: var(--accent);
+      border: 1px solid rgba(0,229,160,0.3);
+      padding: 0.3rem 0.8rem;
+      border-radius: 999px;
+    }
+
+    main {
+      position: relative;
+      z-index: 1;
+      padding: 2.5rem 3rem;
+      max-width: 1300px;
+      margin: 0 auto;
+    }
+
+    /* Stats row */
+    .stats {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 1rem;
+      margin-bottom: 2.5rem;
+    }
+
+    .stat-card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 1.2rem 1.5rem;
+      transition: border-color 0.2s;
+    }
+    .stat-card:hover { border-color: var(--accent); }
+
+    .stat-label {
+      font-size: 0.72rem;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: var(--muted);
+      font-family: 'DM Mono', monospace;
+      margin-bottom: 0.5rem;
+    }
+
+    .stat-value {
+      font-family: 'Syne', sans-serif;
+      font-size: 2rem;
+      font-weight: 800;
+    }
+    .stat-value.leve { color: var(--leve); }
+    .stat-value.moderado { color: var(--moderado); }
+    .stat-value.intenso { color: var(--intenso); }
+    .stat-value.total { color: var(--text); }
+
+    /* Search & filters */
+    .toolbar {
+      display: flex;
+      gap: 1rem;
+      margin-bottom: 1.5rem;
+      align-items: center;
+    }
+
+    .search-wrap {
+      flex: 1;
+      position: relative;
+    }
+
+    .search-wrap input {
+      width: 100%;
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 0.7rem 1rem 0.7rem 2.8rem;
+      color: var(--text);
+      font-family: 'DM Sans', sans-serif;
+      font-size: 0.9rem;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+    .search-wrap input:focus { border-color: var(--accent); }
+    .search-wrap::before {
+      content: '⌕';
+      position: absolute;
+      left: 0.9rem;
+      top: 50%;
+      transform: translateY(-50%);
+      color: var(--muted);
+      font-size: 1.1rem;
+    }
+
+    select.filter {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 0.7rem 1rem;
+      color: var(--text);
+      font-family: 'DM Mono', monospace;
+      font-size: 0.8rem;
+      outline: none;
+      cursor: pointer;
+      transition: border-color 0.2s;
+    }
+    select.filter:focus { border-color: var(--accent); }
+
+    /* Table */
+    .table-wrap {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      overflow: hidden;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+
+    thead tr {
+      background: rgba(0,229,160,0.04);
+      border-bottom: 1px solid var(--border);
+    }
+
+    th {
+      font-family: 'DM Mono', monospace;
+      font-size: 0.7rem;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: var(--muted);
+      padding: 1rem 1.2rem;
+      text-align: left;
+      font-weight: 500;
+    }
+
+    tbody tr {
+      border-bottom: 1px solid var(--border);
+      transition: background 0.15s;
+    }
+    tbody tr:last-child { border-bottom: none; }
+    tbody tr:hover { background: rgba(255,255,255,0.02); }
+
+    td {
+      padding: 0.9rem 1.2rem;
+      font-size: 0.88rem;
+    }
+
+    .td-id {
+      font-family: 'DM Mono', monospace;
+      color: var(--muted);
+      font-size: 0.8rem;
+    }
+
+    .td-nome { font-weight: 500; }
+
+    .pill {
+      display: inline-block;
+      padding: 0.2rem 0.7rem;
+      border-radius: 999px;
+      font-size: 0.72rem;
+      font-family: 'DM Mono', monospace;
+      font-weight: 500;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+    .pill.leve    { background: rgba(0,229,160,0.12); color: var(--leve); }
+    .pill.moderado{ background: rgba(255,209,102,0.12); color: var(--moderado); }
+    .pill.intenso { background: rgba(255,77,109,0.12); color: var(--intenso); }
+
+    .bar-wrap {
+      width: 80px;
+      height: 6px;
+      background: var(--border);
+      border-radius: 3px;
+      overflow: hidden;
+    }
+    .bar-fill {
+      height: 100%;
+      border-radius: 3px;
+      transition: width 0.4s ease;
+    }
+
+    /* Actions */
+    .actions { display: flex; gap: 0.5rem; }
+
+    .btn-edit, .btn-del, .btn-reorg {
+      border: none;
+      border-radius: 6px;
+      padding: 0.4rem 0.8rem;
+      font-size: 0.78rem;
+      font-family: 'DM Mono', monospace;
+      cursor: pointer;
+      transition: opacity 0.2s, transform 0.1s;
+    }
+    .btn-edit:hover, .btn-del:hover { opacity: 0.8; transform: translateY(-1px); }
+
+    .btn-edit { background: rgba(0,229,160,0.15); color: var(--accent); }
+    .btn-del  { background: rgba(255,77,109,0.15); color: var(--accent2); }
+
+    .btn-reorg {
+      background: rgba(255,209,102,0.12);
+      color: var(--accent3);
+      border: 1px solid rgba(255,209,102,0.3);
+      padding: 0.6rem 1.2rem;
+      font-size: 0.8rem;
+    }
+    .btn-reorg:hover { opacity: 0.8; }
+
+    /* Modal */
+    .modal-bg {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.7);
+      backdrop-filter: blur(6px);
+      z-index: 100;
+      align-items: center;
+      justify-content: center;
+    }
+    .modal-bg.open { display: flex; }
+
+    .modal {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 2rem;
+      width: 420px;
+      max-width: 95vw;
+      animation: popIn 0.2s ease;
+    }
+    @keyframes popIn {
+      from { transform: scale(0.92); opacity: 0; }
+      to   { transform: scale(1);    opacity: 1; }
+    }
+
+    .modal h2 {
+      font-family: 'Syne', sans-serif;
+      font-size: 1.2rem;
+      margin-bottom: 1.5rem;
+      color: var(--accent);
+    }
+
+    .field {
+      margin-bottom: 1rem;
+    }
+    .field label {
+      display: block;
+      font-size: 0.72rem;
+      font-family: 'DM Mono', monospace;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--muted);
+      margin-bottom: 0.4rem;
+    }
+    .field input, .field select {
+      width: 100%;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 0.65rem 0.9rem;
+      color: var(--text);
+      font-family: 'DM Sans', sans-serif;
+      font-size: 0.9rem;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+    .field input:focus, .field select:focus { border-color: var(--accent); }
+
+    .modal-actions {
+      display: flex;
+      gap: 0.8rem;
+      margin-top: 1.5rem;
+    }
+
+    .btn-save {
+      flex: 1;
+      background: var(--accent);
+      color: #000;
+      border: none;
+      border-radius: 8px;
+      padding: 0.75rem;
+      font-family: 'Syne', sans-serif;
+      font-weight: 700;
+      font-size: 0.9rem;
+      cursor: pointer;
+      transition: opacity 0.2s;
+    }
+    .btn-save:hover { opacity: 0.85; }
+
+    .btn-cancel {
+      background: transparent;
+      color: var(--muted);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 0.75rem 1.2rem;
+      font-family: 'DM Sans', sans-serif;
+      font-size: 0.9rem;
+      cursor: pointer;
+      transition: border-color 0.2s;
+    }
+    .btn-cancel:hover { border-color: var(--muted); }
+
+    /* Toast */
+    .toast {
+      position: fixed;
+      bottom: 2rem;
+      right: 2rem;
+      background: var(--card);
+      border: 1px solid var(--accent);
+      color: var(--accent);
+      font-family: 'DM Mono', monospace;
+      font-size: 0.82rem;
+      padding: 0.8rem 1.4rem;
+      border-radius: 10px;
+      z-index: 999;
+      opacity: 0;
+      transform: translateY(10px);
+      transition: all 0.3s;
+      pointer-events: none;
+    }
+    .toast.show { opacity: 1; transform: translateY(0); }
+    .toast.error { border-color: var(--accent2); color: var(--accent2); }
+
+    .empty {
+      text-align: center;
+      padding: 3rem;
+      color: var(--muted);
+      font-family: 'DM Mono', monospace;
+      font-size: 0.85rem;
+    }
+
+    /* Flash messages */
+    .flash {
+      padding: 0.8rem 1.2rem;
+      border-radius: 8px;
+      margin-bottom: 1.5rem;
+      font-size: 0.88rem;
+    }
+    .flash.success { background: rgba(0,229,160,0.1); border: 1px solid rgba(0,229,160,0.3); color: var(--accent); }
+    .flash.error   { background: rgba(255,77,109,0.1); border: 1px solid rgba(255,77,109,0.3); color: var(--accent2); }
+  </style>
+</head>
+<body>
+
+<header>
+  <div class="logo">saúde<span>_</span>admin</div>
+  <span class="badge-total">{{ registros|length }} registros</span>
+</header>
+
+<main>
+
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% for cat, msg in messages %}
+      <div class="flash {{ cat }}">{{ msg }}</div>
+    {% endfor %}
+  {% endwith %}
+
+  <!-- Stats -->
+  <div class="stats">
+    <div class="stat-card">
+      <div class="stat-label">Total</div>
+      <div class="stat-value total">{{ registros|length }}</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Leve</div>
+      <div class="stat-value leve">{{ registros|selectattr('6', 'equalto', 'leve')|list|length }}</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Moderado</div>
+      <div class="stat-value moderado">{{ registros|selectattr('6', 'equalto', 'moderado')|list|length }}</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Intenso</div>
+      <div class="stat-value intenso">{{ registros|selectattr('6', 'equalto', 'intenso')|list|length }}</div>
+    </div>
+  </div>
+
+  <!-- Toolbar -->
+  <div class="toolbar">
+    <div class="search-wrap">
+      <input type="text" id="searchInput" placeholder="Buscar por nome..." oninput="filtrar()"/>
+    </div>
+    <select class="filter" id="filterNivel" onchange="filtrar()">
+      <option value="">Todos os níveis</option>
+      <option value="leve">Leve</option>
+      <option value="moderado">Moderado</option>
+      <option value="intenso">Intenso</option>
+    </select>
+    <button class="btn-reorg" onclick="reorganizar()">⟳ Reorganizar IDs</button>
+  </div>
+
+  <!-- Table -->
+  <div class="table-wrap">
+    <table id="tabela">
+      <thead>
+        <tr>
+          <th>ID</th>
+          <th>Nome</th>
+          <th>Idade</th>
+          <th>Sexo</th>
+          <th>Ansiedade</th>
+          <th>Estresse</th>
+          <th>Depressão</th>
+          <th>Nível</th>
+          <th>Ações</th>
+        </tr>
+      </thead>
+      <tbody id="tbody">
+        {% for r in registros %}
+        <tr data-nivel="{{ r[7] }}" data-nome="{{ r[1]|lower }}">
+          <td class="td-id">#{{ r[0] }}</td>
+          <td class="td-nome">{{ r[1] }}</td>
+          <td>{{ r[2] }}</td>
+          <td>{{ r[3] }}</td>
+          <td>
+            <div style="display:flex;align-items:center;gap:0.5rem;">
+              {{ r[4] }}
+              <div class="bar-wrap"><div class="bar-fill" style="width:{{ r[4]*10 }}%;background:var(--intenso);"></div></div>
+            </div>
+          </td>
+          <td>
+            <div style="display:flex;align-items:center;gap:0.5rem;">
+              {{ r[5] }}
+              <div class="bar-wrap"><div class="bar-fill" style="width:{{ r[5]*10 }}%;background:var(--accent3);"></div></div>
+            </div>
+          </td>
+          <td>
+            <div style="display:flex;align-items:center;gap:0.5rem;">
+              {{ r[6] }}
+              <div class="bar-wrap"><div class="bar-fill" style="width:{{ r[6]*10 }}%;background:var(--moderado);"></div></div>
+            </div>
+          </td>
+          <td><span class="pill {{ r[7] }}">{{ r[7] }}</span></td>
+          <td>
+            <div class="actions">
+              <button class="btn-edit" onclick="abrirEdicao({{ r[0] }}, '{{ r[1] }}', {{ r[2] }}, '{{ r[3] }}', {{ r[4] }}, {{ r[5] }}, {{ r[6] }})">editar</button>
+              <button class="btn-del" onclick="confirmarDelete({{ r[0] }}, '{{ r[1] }}')">apagar</button>
+            </div>
+          </td>
+        </tr>
+        {% else %}
+        <tr><td colspan="9" class="empty">Nenhum registro encontrado.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</main>
+
+<!-- Modal Editar -->
+<div class="modal-bg" id="modalEdicao">
+  <div class="modal">
+    <h2>✦ Editar Registro</h2>
+    <form method="POST" action="/admin/editar">
+      <input type="hidden" name="id" id="edit_id"/>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.8rem;">
+        <div class="field" style="grid-column:1/-1;">
+          <label>Nome</label>
+          <input type="text" name="nome" id="edit_nome" required/>
+        </div>
+        <div class="field">
+          <label>Idade</label>
+          <input type="number" name="idade" id="edit_idade" min="1" max="120" required/>
+        </div>
+        <div class="field">
+          <label>Sexo</label>
+          <select name="sexo" id="edit_sexo">
+            <option value="M">Masculino</option>
+            <option value="F">Feminino</option>
+            <option value="Outro">Outro</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>Ansiedade (0–10)</label>
+          <input type="number" name="ansiedade" id="edit_ansiedade" min="0" max="10" required/>
+        </div>
+        <div class="field">
+          <label>Estresse (0–10)</label>
+          <input type="number" name="estresse" id="edit_estresse" min="0" max="10" required/>
+        </div>
+        <div class="field" style="grid-column:1/-1;">
+          <label>Depressão (0–10)</label>
+          <input type="number" name="depressao" id="edit_depressao" min="0" max="10" required/>
+        </div>
+      </div>
+      <div class="modal-actions">
+        <button type="button" class="btn-cancel" onclick="fecharModal('modalEdicao')">Cancelar</button>
+        <button type="submit" class="btn-save">Salvar alterações</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Modal Delete -->
+<div class="modal-bg" id="modalDelete">
+  <div class="modal">
+    <h2 style="color:var(--accent2);">✦ Apagar Registro</h2>
+    <p style="color:var(--muted);font-size:0.9rem;margin-bottom:1.5rem;">
+      Tem certeza que quer apagar <strong id="del_nome" style="color:var(--text)"></strong>? Esta ação não pode ser desfeita.
+    </p>
+    <form method="POST" action="/admin/apagar">
+      <input type="hidden" name="id" id="del_id"/>
+      <div class="modal-actions">
+        <button type="button" class="btn-cancel" onclick="fecharModal('modalDelete')">Cancelar</button>
+        <button type="submit" class="btn-save" style="background:var(--accent2);">Confirmar exclusão</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Toast -->
+<div class="toast" id="toast"></div>
+
+<script>
+  function abrirEdicao(id, nome, idade, sexo, ansiedade, estresse, depressao) {
+    document.getElementById('edit_id').value = id;
+    document.getElementById('edit_nome').value = nome;
+    document.getElementById('edit_idade').value = idade;
+    document.getElementById('edit_sexo').value = sexo;
+    document.getElementById('edit_ansiedade').value = ansiedade;
+    document.getElementById('edit_estresse').value = estresse;
+    document.getElementById('edit_depressao').value = depressao;
+    document.getElementById('modalEdicao').classList.add('open');
+  }
+
+  function confirmarDelete(id, nome) {
+    document.getElementById('del_id').value = id;
+    document.getElementById('del_nome').textContent = nome;
+    document.getElementById('modalDelete').classList.add('open');
+  }
+
+  function fecharModal(id) {
+    document.getElementById(id).classList.remove('open');
+  }
+
+  // Fechar modal clicando fora
+  document.querySelectorAll('.modal-bg').forEach(bg => {
+    bg.addEventListener('click', e => { if (e.target === bg) bg.classList.remove('open'); });
+  });
+
+  function filtrar() {
+    const busca = document.getElementById('searchInput').value.toLowerCase();
+    const nivel = document.getElementById('filterNivel').value;
+    document.querySelectorAll('#tbody tr[data-nome]').forEach(tr => {
+      const nomeOk = tr.dataset.nome.includes(busca);
+      const nivelOk = !nivel || tr.dataset.nivel === nivel;
+      tr.style.display = nomeOk && nivelOk ? '' : 'none';
+    });
+  }
+
+  function reorganizar() {
+    if (!confirm('Reorganizar os IDs em sequência? Os IDs antigos serão substituídos.')) return;
+    fetch('/admin/reorganizar-ids', { method: 'POST' })
+      .then(r => r.json())
+      .then(d => {
+        showToast(d.msg, d.ok ? '' : 'error');
+        if (d.ok) setTimeout(() => location.reload(), 1200);
+      });
+  }
+
+  function showToast(msg, tipo) {
+    const t = document.getElementById('toast');
+    t.textContent = msg;
+    t.className = 'toast show ' + tipo;
+    setTimeout(() => t.classList.remove('show'), 3000);
+  }
+</script>
+</body>
+</html>
